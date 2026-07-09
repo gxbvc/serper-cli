@@ -1,0 +1,22 @@
+{
+  "name": "serper-cli",
+  "version": "1.0.0",
+  "description": "Serper.dev (Google SERP) API CLI: web, news, images, videos, places, maps, shopping, scholar, autocomplete",
+  "type": "module",
+  "bin": {
+    "serper-cli": "./bin/serper-cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/cli.ts"
+  },
+  "dependencies": {
+    "commander": "^12.0.0",
+    "dotenv": "^16.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.3.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.0"
+  }
+}
