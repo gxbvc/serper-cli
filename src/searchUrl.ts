@@ -1,5 +1,12 @@
 // Offline, pure search-URL unwrapping. No network, never throws.
 //
+// This function is NOT an SSRF guard. A hostname can resolve to 127.0.0.1,
+// 10.x or 169.254.169.254. Any code that fetches a URL from here must check
+// the resolved IP at connect time (refuse loopback, private, link-local,
+// CGNAT 100.64.0.0/10, the metadata IP, IPv6 ULA and link-local) and check
+// again on every redirect. The "invalid" rules are a first filter for display
+// and dedupe only.
+//
 // Port of rails-template lib/search_url.rb (shared interface, see
 // ~/tmp/misc-serper-unwrap-interface.md):
 // - unwrap(url) -> SearchResult
@@ -226,17 +233,24 @@ function normalizedHost(host: string): string {
 
 function isIpLiteral(host: string): boolean {
   if (host.includes(":")) return true; // IPv6 literal
-  const parts = host.split(".");
-  return parts.length === 4 && parts.every((p) => /^\d{1,3}$/.test(p));
+  // Any label count (1 or more): every label is all decimal digits, or
+  // hex with a 0x prefix. Covers 2130706433, 127.1, 0x7f.0.0.1,
+  // 0x7f000001, 0177.0.0.1 and the normal 4-part form.
+  return host.split(".").every((label) => /^(?:\d+|0x[0-9a-f]*)$/i.test(label));
 }
 
 function isPrivateHost(host: string): boolean {
+  // Single-label hosts (http://intranet/, http://router/) have no public
+  // name to resolve: refuse them like the dot-suffixes below.
+  if (!host.includes(".")) return true;
   return (
     host === "localhost" ||
     host.endsWith(".localhost") ||
     host.endsWith(".local") ||
     host.endsWith(".internal") ||
     host.endsWith(".lan") ||
-    host.endsWith(".arpa")
+    host.endsWith(".arpa") ||
+    host.endsWith(".home") ||
+    host.endsWith(".corp")
   );
 }

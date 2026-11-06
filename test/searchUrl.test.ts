@@ -84,5 +84,24 @@ check("never throws on junk input", () => {
   }
 });
 
+// 4. Invalid UTF-8 bytes: JSON cannot carry them (a JSON file is Unicode
+// text), so the never-throw checks live here; Ruby has its own copy in
+// test/lib/search_url_test.rb. JS strings are always valid UTF-16, so the
+// nearest equivalent of raw invalid bytes is a lone surrogate.
+check("never throws on invalid UTF-8 bytes (lone surrogates)", () => {
+  const bad = ["http://example.com/\uD800", "http://\uD800.com/", "http://example.com/\uDFFF"];
+  for (const b of bad) {
+    unwrap(b);
+    isWrapper(b);
+  }
+});
+
+// 5. ~20,000 chars, built here so the shared JSON stays small.
+check("never throws on a very long URL", () => {
+  const long = `https://example.com/${"a".repeat(20000)}`;
+  const r = unwrap(long);
+  assert.equal(r.status, "direct");
+});
+
 console.log(`${pass + fail} checks, ${fail} failures`);
 process.exit(fail === 0 ? 0 : 1);
